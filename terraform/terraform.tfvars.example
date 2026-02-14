@@ -1,0 +1,13 @@
+project_name       = "devops-platform"
+aws_region         = "us-east-1"
+aws_profile        = "default"
+vpc_cidr           = "10.10.0.0/16"
+public_subnet_cidr = "10.10.1.0/24"
+availability_zone  = "us-east-1a"
+
+# Replace with Ubuntu AMI for your region
+ami_id         = "ami-xxxxxxxxxxxxxxxxx"
+instance_type  = "t3.medium"
+key_name       = "your-ec2-keypair-name"
+my_ip_cidr     = "x.x.x.x/32"
+

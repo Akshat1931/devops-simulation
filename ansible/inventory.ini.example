@@ -1,0 +1,12 @@
+[jenkins]
+jenkins ansible_host=1.2.3.4 ansible_user=ubuntu
+
+[k8s_master]
+k8s-master ansible_host=1.2.3.5 ansible_user=ubuntu
+
+[k8s_workers]
+k8s-worker-1 ansible_host=1.2.3.6 ansible_user=ubuntu
+
+[all:vars]
+ansible_ssh_private_key_file=~/.ssh/your-key.pem
+

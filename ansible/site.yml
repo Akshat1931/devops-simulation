@@ -1,0 +1,6 @@
+---
+- import_playbook: playbooks/common.yml
+- import_playbook: playbooks/jenkins.yml
+- import_playbook: playbooks/k3s-master.yml
+- import_playbook: playbooks/k3s-worker.yml
+

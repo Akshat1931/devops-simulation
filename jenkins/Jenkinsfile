@@ -1,0 +1,62 @@
+pipeline {
+  agent any
+
+  environment {
+    REGISTRY = "docker.io"
+    IMAGE_REPO = "YOUR_DOCKERHUB_USERNAME/devops-platform-app"
+    IMAGE_TAG = "${env.BUILD_NUMBER}"
+    FULL_IMAGE = "${env.IMAGE_REPO}:${env.IMAGE_TAG}"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Test') {
+      steps {
+        sh '''
+          docker run --rm -v "$WORKSPACE/app:/src" -w /src python:3.11-slim sh -c "
+            pip install --no-cache-dir -r requirements.txt &&
+            pytest -q
+          "
+        '''
+      }
+    }
+
+    stage('Build Image') {
+      steps {
+        sh 'docker build -t $FULL_IMAGE ./app'
+      }
+    }
+
+    stage('Push Image') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          sh '''
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            docker push "$FULL_IMAGE"
+            docker logout
+          '''
+        }
+      }
+    }
+
+    stage('Deploy to Kubernetes') {
+      steps {
+        withCredentials([file(credentialsId: 'kubeconfig-file', variable: 'KCFG')]) {
+          sh '''
+            cp "$KCFG" kubeconfig
+            export KUBECONFIG="$PWD/kubeconfig"
+            sed "s|__IMAGE__|$FULL_IMAGE|g" k8s/deployment.yaml | kubectl apply -f -
+            kubectl apply -f k8s/service.yaml
+            kubectl rollout status deployment/devops-platform-app --timeout=120s
+          '''
+        }
+      }
+    }
+  }
+}
+

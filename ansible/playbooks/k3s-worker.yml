@@ -1,0 +1,20 @@
+---
+- name: Install k3s on workers
+  hosts: k8s_workers
+  become: true
+  vars:
+    k3s_master_host: "{{ hostvars[groups['k8s_master'][0]].ansible_host }}"
+    k3s_token: "{{ hostvars[groups['k8s_master'][0]].k3s_node_token }}"
+  tasks:
+    - name: Install Docker
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+        update_cache: true
+
+    - name: Install k3s agent
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | K3S_URL=https://{{ k3s_master_host }}:6443 K3S_TOKEN={{ k3s_token }} sh -
+      args:
+        creates: /usr/local/bin/k3s-agent
+
