@@ -32,7 +32,7 @@ Jenkins pipeline:
 
 ## 2. Prerequisites (What You Must Do)
 
-You must do these manually:
+You must do these things manually:
 
 1. Create an AWS account and IAM user with EC2/VPC permissions.
 2. Create or choose an AWS key pair in your target region.
