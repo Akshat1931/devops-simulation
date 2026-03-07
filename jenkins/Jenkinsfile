@@ -48,8 +48,7 @@ pipeline {
       steps {
         withCredentials([file(credentialsId: 'kubeconfig-file', variable: 'KCFG')]) {
           sh '''
-            cp "$KCFG" kubeconfig
-            export KUBECONFIG="$PWD/kubeconfig"
+            export KUBECONFIG="$KCFG"
             sed "s|__IMAGE__|$FULL_IMAGE|g" k8s/deployment.yaml | kubectl apply -f -
             kubectl apply -f k8s/service.yaml
             kubectl rollout status deployment/devops-platform-app --timeout=120s
@@ -59,4 +58,3 @@ pipeline {
     }
   }
 }
-
