@@ -6,6 +6,14 @@ metadata:
     app: devops-platform-app
 spec:
   replicas: 2
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 120
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: devops-platform-app
@@ -25,10 +33,11 @@ spec:
               port: 5000
             initialDelaySeconds: 5
             periodSeconds: 10
+            failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /
               port: 5000
             initialDelaySeconds: 15
             periodSeconds: 20
-
+            failureThreshold: 3

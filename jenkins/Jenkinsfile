@@ -44,14 +44,29 @@ pipeline {
       }
     }
 
+    stage('Approval Gate') {
+      steps {
+        timeout(time: 10, unit: 'MINUTES') {
+          input message: "Deploy ${env.FULL_IMAGE} to Kubernetes?", ok: 'Approve Deployment'
+        }
+      }
+    }
+
     stage('Deploy to Kubernetes') {
       steps {
         withCredentials([file(credentialsId: 'kubeconfig-file', variable: 'KCFG')]) {
           sh '''
+            set -e
             export KUBECONFIG="$KCFG"
             sed "s|__IMAGE__|$FULL_IMAGE|g" k8s/deployment.yaml | kubectl apply -f -
             kubectl apply -f k8s/service.yaml
-            kubectl rollout status deployment/devops-platform-app --timeout=120s
+
+            if ! kubectl rollout status deployment/devops-platform-app --timeout=120s; then
+              echo "Deployment failed health/rollout checks. Rolling back."
+              kubectl rollout undo deployment/devops-platform-app
+              kubectl rollout status deployment/devops-platform-app --timeout=120s
+              exit 1
+            fi
           '''
         }
       }
