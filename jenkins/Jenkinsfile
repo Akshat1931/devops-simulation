@@ -1,6 +1,10 @@
 pipeline {
   agent any
 
+  options {
+    disableResume()
+  }
+
   environment {
     REGISTRY = "docker.io"
     IMAGE_REPO = "akshatbaranwal/devops-platform-app"
@@ -47,7 +51,7 @@ pipeline {
     stage('Approval Gate') {
       steps {
         timeout(time: 10, unit: 'MINUTES') {
-          input message: "Deploy ${env.FULL_IMAGE} to Kubernetes?", ok: 'Approve Deployment'
+          input id: 'deploy-approval', message: "Deploy ${env.FULL_IMAGE} to Kubernetes?", ok: 'Approve Deployment'
         }
       }
     }
