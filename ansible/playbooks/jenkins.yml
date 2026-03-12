@@ -9,19 +9,15 @@
           - openjdk-17-jre
           - gnupg
         state: present
-        update_cache: true
 
     - name: Add Jenkins apt key
       ansible.builtin.shell: |
-        curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | tee \
-          /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-      args:
-        creates: /usr/share/keyrings/jenkins-keyring.asc
+        curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key | gpg --dearmor --yes --output /usr/share/keyrings/jenkins-keyring.gpg
 
     - name: Add Jenkins repository
       ansible.builtin.copy:
         dest: /etc/apt/sources.list.d/jenkins.list
-        content: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/\n"
+        content: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/\n"
         mode: "0644"
 
     - name: Install Jenkins
@@ -52,4 +48,3 @@
         name: jenkins
         groups: docker
         append: true
-
