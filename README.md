@@ -1,86 +1,125 @@
-# End-to-End DevOps Automation Platform
+# Neural Time Machine DevOps Pipeline
 
-This repository is a complete starter for an automated DevOps pipeline using:
+This repository deploys the Neural Time Machine application through an end-to-end DevOps pipeline on AWS.
 
-- GitHub
-- Terraform (AWS infrastructure)
-- Ansible (server configuration)
-- Jenkins (CI/CD)
-- Docker (containerization)
-- Kubernetes (orchestration)
+## Stack
 
-The app is intentionally simple. The focus is pipeline automation and repeatable delivery.
+- GitHub for source control and webhook trigger
+- Terraform for AWS infrastructure
+- Ansible for server configuration
+- Jenkins for CI/CD orchestration
+- Docker for image build and packaging
+- Kubernetes `k3s` for deployment and rollout management
+- Streamlit + Python for the application
 
-## 1. Architecture
+## Application
 
-Terraform provisions:
-- `jenkins` EC2 instance
-- `k8s-master` EC2 instance
-- `k8s-worker-1` EC2 instance
-- VPC, subnet, internet gateway, route table, and security group
+Neural Time Machine analyzes synthetic time-based production logs, detects change points, identifies likely root causes, and can generate an optional Gemini-powered incident narrative.
 
-Ansible configures:
-- Jenkins host with Java, Docker, Jenkins
-- Kubernetes hosts with Docker + k3s (master/worker)
+Main app modules:
 
-Jenkins pipeline:
-- Checks out code
-- Runs tests
-- Builds Docker image
-- Pushes image to Docker Hub (or your registry)
-- Deploys to Kubernetes using `kubectl`
+- `app/dashboard.py` Streamlit dashboard
+- `src/detect/` change-point detection
+- `src/explain/` root-cause analysis and Gemini client
+- `src/utils/` synthetic data generation and preparation
 
-## 2. Prerequisites (What You Must Do)
+## CI/CD Flow
 
-You must do these things manually:
+1. Developer pushes code to GitHub
+2. Jenkins detects the commit
+3. Jenkins runs a Python sanity check
+4. Jenkins builds a Docker image
+5. Jenkins pushes the image to Docker Hub
+6. Jenkins pauses at a manual approval gate
+7. On approval, Jenkins deploys the image to Kubernetes
+8. Jenkins checks rollout health
+9. If rollout fails, Jenkins automatically rolls back to the previous stable revision
 
-1. Create an AWS account and IAM user with EC2/VPC permissions.
-2. Create or choose an AWS key pair in your target region.
-3. Create a Docker Hub account (or use another registry).
-4. Create a GitHub repository and push this project.
+## Production-style Features
 
-Local machine requirements:
+### Approval Gate
 
-- Terraform >= 1.6
-- Ansible >= 2.14
-- AWS CLI configured (`aws configure`)
-- SSH client
-- Git
+The pipeline pauses after image push and waits for manual approval before deployment.
 
-## 3. Quick Start Order
+Defined in:
 
-1. Configure Terraform variables:
-   - Copy `terraform/terraform.tfvars.example` to `terraform/terraform.tfvars`
-   - Fill your values
-2. Provision infrastructure:
-   - `cd terraform`
-   - `terraform init`
-   - `terraform plan`
-   - `terraform apply`
-3. Build Ansible inventory from Terraform outputs:
-   - `cd ..`
-   - `pwsh ./scripts/generate-inventory.ps1`
-4. Configure servers:
-   - `ansible-playbook -i ansible/inventory.ini ansible/site.yml`
-5. Open Jenkins:
-   - `http://<jenkins_public_ip>:8080`
-6. Configure Jenkins credentials and pipeline job (see `docs/jenkins-setup.md`)
-7. Push code to GitHub and run pipeline.
+- `jenkins/Jenkinsfile`
 
-## 4. Files and Folders
+### Automatic Rollback
 
-- `terraform/` AWS infrastructure as code
-- `ansible/` server configuration playbooks
+If `kubectl rollout status` fails after deployment, Jenkins runs:
+
+```bash
+kubectl rollout undo deployment/devops-platform-app
+```
+
+This restores the last working Kubernetes deployment revision.
+
+## Kubernetes App Access
+
+The app is exposed through a NodePort service:
+
+- App URL: `http://<k8s-master-public-ip>:30080/`
+- Streamlit container port: `8501`
+
+## Gemini Key Setup
+
+The app can run without Gemini. If no Gemini key is set, it falls back to a built-in heuristic explanation.
+
+To enable Gemini in Kubernetes, create a secret on the cluster:
+
+```bash
+kubectl create secret generic neural-time-machine-secrets \
+  --from-literal=GOOGLE_API_KEY="<your-gemini-api-key>"
+```
+
+The deployment reads:
+
+- `GOOGLE_API_KEY` from Kubernetes secret `neural-time-machine-secrets`
+- `GEMINI_MODEL_NAME` from deployment environment
+
+If you need to update the key later:
+
+```bash
+kubectl delete secret neural-time-machine-secrets
+kubectl create secret generic neural-time-machine-secrets \
+  --from-literal=GOOGLE_API_KEY="<your-gemini-api-key>"
+kubectl rollout restart deployment/devops-platform-app
+```
+
+## Important Files
+
+- `terraform/` AWS infrastructure
+- `ansible/` Jenkins and k3s setup
 - `jenkins/Jenkinsfile` CI/CD pipeline
-- `app/` sample Python app + tests + Dockerfile
-- `k8s/` Kubernetes manifests
-- `scripts/` helper scripts
-- `docs/` manual setup guides
+- `app/Dockerfile` app container build
+- `k8s/deployment.yaml` deployment and rollback-ready rollout config
+- `k8s/service.yaml` app exposure
+- `requirements.txt` Python dependencies
 
-## 5. Important Notes
+## Local Sanity Check
 
-- Keep AWS credentials out of git.
-- Restrict `0.0.0.0/0` SSH in production; this starter is for learning/demo.
-- Rotate secrets and use Jenkins credentials, never hardcode passwords/tokens.
+Build the container locally:
 
-webhook test Sat Mar  7 22:13:21 UTC 2026
+```bash
+docker build -t neural-time-machine-dev -f app/Dockerfile .
+```
+
+Run the app locally:
+
+```bash
+docker run --rm -p 8501:8501 neural-time-machine-dev
+```
+
+Then open:
+
+```text
+http://localhost:8501
+```
+
+## Deployment Notes
+
+- Keep `.env` out of git
+- Store API keys as Jenkins credentials or Kubernetes secrets
+- If EC2 instances are stopped and restarted, public IPs may change
+- Update Jenkins URL and GitHub webhook when Jenkins public IP changes

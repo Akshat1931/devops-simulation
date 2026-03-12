@@ -25,6 +25,15 @@ spec:
       containers:
         - name: devops-platform-app
           image: __IMAGE__
+          env:
+            - name: GEMINI_MODEL_NAME
+              value: "gemini-1.5-flash"
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: neural-time-machine-secrets
+                  key: GOOGLE_API_KEY
+                  optional: true
           ports:
             - containerPort: 8501
           readinessProbe:
