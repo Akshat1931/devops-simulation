@@ -8,6 +8,5 @@ spec:
     app: devops-platform-app
   ports:
     - port: 80
-      targetPort: 5000
+      targetPort: 8501
       nodePort: 30080
-
