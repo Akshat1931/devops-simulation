@@ -27,7 +27,7 @@ spec:
           image: __IMAGE__
           env:
             - name: GEMINI_MODEL_NAME
-              value: "gemini-1.5-flash"
+              value: "gemini-2.5-flash"
             - name: GOOGLE_API_KEY
               valueFrom:
                 secretKeyRef:
