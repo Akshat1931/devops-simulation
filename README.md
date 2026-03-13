@@ -123,3 +123,6 @@ http://localhost:8501
 - Store API keys as Jenkins credentials or Kubernetes secrets
 - If EC2 instances are stopped and restarted, public IPs may change
 - Update Jenkins URL and GitHub webhook when Jenkins public IP changes
+
+Test trigger: README updated
+
